@@ -1,32 +1,32 @@
 # -*- coding: utf-8 -*-
 """
 Ghidra Script: Multi-threaded Opcode Extractor
-
 This script extracts mnemonic opcodes from selected executable sections
 of a binary using Java threads for performance. Intended for reverse
 engineering or malware analysis purposes.
 
 Author: Srinija Battula
 """
-
 from ghidra.program.flatapi import FlatProgramAPI
 from ghidra.program.model.listing import CodeUnit
 from java.lang import Runnable, Thread
 from java.util.concurrent import ConcurrentHashMap
 import os
 
+# Import helper functions from utils.py
+from utils import get_output_file_path, is_target_section
+
 # Initialize API to interact with current Ghidra program
 api = FlatProgramAPI(currentProgram)
 
-# Prepare output file
+# Prepare output file path using helper function
 input_file_name = currentProgram.getExecutablePath()
-base_name = os.path.basename(input_file_name)
 output_directory = "/home/kali/Downloads/Opcode_New/"
-output_file_path = os.path.join(output_directory, "{}_opcode.txt".format(base_name))
+output_file_path = get_output_file_path(input_file_name, output_directory)
 
-print("Extracting opcodes from:", base_name)
+print("Extracting opcodes from:", os.path.basename(input_file_name))
 
-# Target sections to extract from
+# Define target sections using helper for matching
 target_sections = [".text", ".data", ".rdata", ".xdata", ".idata", ".rsrc", ".stub", ".reloc"]
 
 # Thread-safe storage for opcodes from each section
@@ -73,19 +73,20 @@ def extract_opcodes():
     Main extraction logic: identifies relevant sections, spawns threads, writes to file.
     """
     try:
-        print("Starting opcode extraction for:", base_name)
+        print("Starting opcode extraction for:", os.path.basename(input_file_name))
 
         if not os.path.exists(output_directory):
             os.makedirs(output_directory)
 
-        open(output_file_path, "w").close()  # clear old output
+        # Clear old output file
+        open(output_file_path, "w").close()
 
         memory_blocks = api.getMemoryBlocks()
         threads = []
 
         # Spawn a thread for each target memory section
         for block in memory_blocks:
-            if block.getName() in target_sections or block.isExecute():
+            if is_target_section(block.getName(), target_sections) or block.isExecute():
                 extractor = OpcodeExtractor(block)
                 thread = Thread(extractor)
                 threads.append(thread)
@@ -99,7 +100,7 @@ def extract_opcodes():
         with open(output_file_path, "a") as output_file:
             for block in memory_blocks:
                 name = block.getName()
-                if name in target_sections or block.isExecute():
+                if is_target_section(name, target_sections) or block.isExecute():
                     opcodes = section_opcodes.get(name, [])
                     output_file.write(f"\n# Section: {name}\n")
                     for opcode in opcodes:
@@ -110,6 +111,6 @@ def extract_opcodes():
     except Exception as e:
         print("Error during opcode extraction:", str(e))
 
-
 # Run the extraction
 extract_opcodes()
+
