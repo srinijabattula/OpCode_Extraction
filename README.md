@@ -9,10 +9,11 @@ This repository contains Python (Jython) scripts for extracting opcodes from exe
 
 **Project Structure**
 ghidra-opcode-extractor/            
--README.md                       
--.gitignore                        
+-README.md                                              
 scripts/                         
 -opcode_extractor_multithreaded.py
+-utils.py
+-OpCode-Based APT group classification
 
 **Requirements**
 - [Ghidra](https://ghidra-sre.org/) (Tested on version 10.x+)
